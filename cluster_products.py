@@ -28,26 +28,31 @@ def extract_features(file, model):
 model = VGG16()
 model = Model(inputs=model.inputs, outputs=model.layers[-2].output)
 
-# Extract features for all images
-data = {}
-products = [file for file in os.listdir(path) if file.endswith('.jpg')]
-for product in products:
-    try:
-        features = extract_features(product, model)
-        data[product] = features
-    except Exception as e:
-        st.write(f"Error processing {product}: {e}")
-
-# Save the extracted features
+# Load or extract features for all images
 pickle_file = "product_features.pkl"
-with open(pickle_file, 'wb') as f:
-    pickle.dump(data, f)
+if os.path.exists(pickle_file):
+    # Load features from the existing pickle file
+    with open(pickle_file, 'rb') as f:
+        data = pickle.load(f)
+else:
+    # Extract features and save to pickle file
+    data = {}
+    products = [file for file in os.listdir(path) if file.endswith('.jpg')]
+    for product in products:
+        try:
+            features = extract_features(product, model)
+            data[product] = features
+        except Exception as e:
+            st.write(f"Error processing {product}: {e}")
+    # Save the extracted features
+    with open(pickle_file, 'wb') as f:
+        pickle.dump(data, f)
 
-# Load features and perform PCA
-data = pickle.load(open(pickle_file, 'rb'))
+# Load features from the data dictionary
 filenames = np.array(list(data.keys()))
 features = np.array(list(data.values()))
 
+# Perform PCA
 pca = PCA(n_components=100, random_state=22)
 pca.fit(features)
 features_pca = pca.transform(features)
